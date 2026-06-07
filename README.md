@@ -7,6 +7,9 @@ Mother Jones, Stanford MSA; 806 incidents) into a unified 12-variable schema
 and evaluates cross-source generalization of risk classifiers under a
 leakage-aware leave-one-dataset-out (LODO) protocol.
 
+**Paper:** IEEE IRI 2026 (in press)
+**Code:** https://github.com/nehasharmacs/harmonizing-mass-shooting-db
+
 ## Datasets
 
 | Source       | Years     | Inclusion criterion              | Access                                       |
@@ -71,15 +74,17 @@ python src/download_data.py
 python src/preprocess.py
 
 # 3. Run the full experiment grid
-#    (5-fold CV + LODO across 3 strategies × 3 models × {default, Youden})
+#    (5-fold CV + LODO across 3 strategies × 3 models × 3 threshold modes)
 python src/run_experiments.py
 
 # 4. Temporal holdout (pre-2010 vs post-2010)
 python src/temporal_holdout.py
 
 # 5. Downstream analyses
-python scripts/01_bootstrap_ci.py
-python scripts/02_wilcoxon_ablation.py
+python scripts/01_bootstrap_ci.py                  # bootstrap CIs for top configs
+python scripts/02_wilcoxon_ablation.py             # paired feature-set comparison
+python scripts/04_ablation_depth_sweep.py          # depth selection sweep
+python scripts/05_rf_baseline_youden_breakdown.py  # Youden vs default deltas
 
 # 6. Regenerate paper figures
 python scripts/07_figures.py
@@ -87,6 +92,10 @@ python scripts/07_figures.py
 
 Outputs are written to `results/` (CSVs) and `figures/` (PDF + PNG).
 On a modern laptop the full pipeline runs in roughly 10–20 minutes.
+
+Scripts `03_deduplication.py` and `06_rf_depth_pipeline.py` are helper
+utilities used during data preparation; they are not required to reproduce
+the paper's headline numbers.
 
 ## Method summary
 
@@ -96,28 +105,56 @@ On a modern laptop the full pipeline runs in roughly 10–20 minutes.
   computed only on the training fold to prevent label leakage.
 - **Three classifiers**: depth-3 decision tree, L2-regularized multinomial
   logistic regression, Gaussian naïve Bayes.
-- **Two decision rules**: argmax over class probabilities (default) and
-  per-class Youden's J thresholding on a 20% stratified validation split.
+- **Three decision rules**: argmax over class probabilities (default);
+  per-class Youden's J thresholding computed on the training fold
+  (`youden`); and Youden's J computed on a 20% stratified validation
+  split held out from training before oversampling (`youden_val`).
 - **Two evaluation protocols**: stratified 5-fold cross-validation on the
   pooled 806-row dataset (within-dataset), and leave-one-dataset-out
   trained on two sources and tested on the third (cross-source), repeated
-  over 5 random seeds.
+  over 5 random seeds (42–46) that vary the oversampling bootstrap,
+  Youden validation split, and tree tie-breaking. Under LODO the test
+  fold is fully determined by the held-out source; seeds therefore
+  characterize oversampling and validation-split sensitivity but do not
+  exercise test-fold randomness.
 
 ## Key findings
 
-- Cross-source ranking of feature sets and stratification strategies is
-  not reliable at *n*=806 rows: across 27 paired comparisons, neither
-  contextual nor full feature sets dominate.
-- The best LODO configuration reaches VeryHigh recall of 0.819 on Kaggle
-  and 0.886 on Stanford MSA; the higher Mother Jones value (0.989)
-  reflects its 4+ fatality inclusion criterion rather than genuine
-  generalization.
-- Within-dataset VeryHigh precision is only 0.147 — the pipeline is not
-  suitable for operational use.
-- LODO-optimal and time-optimal configurations diverge sharply: the LODO
-  best collapses to recall 0.047 on post-2010 data, while a different
-  configuration achieves 0.820. Cross-source and cross-time evaluations
-  select different models.
+### Cross-source recall is unstable and partly artifact-driven
+
+![Per-source VeryHigh recall with 95% bootstrap CIs](figures/fig1_bootstrap_ci.png)
+
+The best LODO configuration reaches VeryHigh recall of 0.819 on Kaggle
+and 0.886 on Stanford MSA, but the higher Mother Jones value (0.989)
+reflects its 4+ fatality inclusion criterion rather than genuine
+generalization. Per-seed minimum recall is 0.814 (95% CI [0.724, 0.862]).
+
+### Feature-set effect is configuration-specific, not systematic
+
+![All 27 paired feature-set comparisons](figures/fig2_paired_heatmap.png)
+
+Across 27 paired feature-set comparisons (3 strategies × 3 models ×
+3 threshold modes), the contextual-vs-full difference varies dramatically
+by configuration. The strongest contextual win is quartile/DT/default
+(Δ=+0.695); the strongest full-feature win is std/DT/youden (Δ=−0.689).
+Because the 27 pairs share classifiers, strategies, and datasets, the
+dependence structure precludes a valid pooled inference test at *n*=806
+rows; we report the sign-split (12 contextual / 15 full) descriptively
+rather than as inference.
+
+### Other headline findings
+
+- **Within-dataset VeryHigh precision is only 0.147** — approximately 85%
+  of VeryHigh predictions are false positives under severe class imbalance.
+  The pipeline is not suitable for operational use.
+- **LODO-optimal and time-optimal configurations diverge sharply**: the
+  LODO best collapses to recall 0.047 on post-2010 data, while a
+  different configuration achieves 0.820 ± 0.026. Cross-source and
+  cross-time evaluations select different models, suggesting they are
+  complementary evaluation axes.
+- **`age` is the most stable signal** across permutation and Gini-based
+  feature importance methods (primary DT: 0.005, RF permutation: 0.012,
+  RF Gini: 0.299); secondary rankings diverge by method.
 
 ## Ethics
 
@@ -134,9 +171,10 @@ for the full ethics and limitations discussion.
 @inproceedings{sharma2026harmonizing,
   title     = {Harmonizing Mass-Shooting Databases for Cross-Source Risk Classification},
   author    = {Sharma, Neha and Sharma, Ritesh},
-  booktitle = {IEEE International Conference on Information Reuse and Integration (IRI)},
+  booktitle = {Proc. IEEE Int. Conf. Information Reuse and Integration (IRI)},
   year      = {2026},
-  address   = {Seattle, WA, USA}
+  address   = {Seattle, WA, USA},
+  month     = {Aug}
 }
 ```
 
@@ -150,3 +188,8 @@ for the full ethics and limitations discussion.
   https://github.com/StanfordGeospatialCenter/MSA
 - **Kaggle**: *Mass Shootings in America* dataset, originally compiled by
   the Stanford Geospatial Center.
+
+## License
+
+Released under a non-commercial research license. Operational deployment
+is explicitly prohibited.
