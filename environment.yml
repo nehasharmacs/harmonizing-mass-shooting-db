@@ -1,0 +1,24 @@
+name: iri
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # Python
+  - python=3.11
+
+  # Core scientific stack — install via conda for binary compatibility
+  - numpy=1.26
+  - pandas=2.2
+  - scikit-learn=1.5
+
+  # imbalanced-learn is not on the default conda channel;
+  # install via pip (listed in pip block below)
+
+  # Plotting — needed if you regenerate the paper figures
+  - matplotlib=3.9
+  - seaborn=0.13
+
+  # Utilities
+  - pip
+  - pip:
+      - imbalanced-learn==0.12.4

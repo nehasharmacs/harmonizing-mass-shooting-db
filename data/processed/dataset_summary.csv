@@ -1,0 +1,4 @@
+source,n,year_min,year_max,victims_mean,victims_median
+kaggle,315,1966,2017,8.56,5.0
+mother_jones,157,1982,2026,13.8,10.0
+stanford_msa,334,1966,2016,7.53,5.0
