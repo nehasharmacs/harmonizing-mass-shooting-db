@@ -12,24 +12,32 @@ leakage-aware leave-one-dataset-out (LODO) protocol.
 
 ## Datasets
 
-| Source       | Years     | Inclusion criterion              | Access                                       |
-|--------------|-----------|----------------------------------|----------------------------------------------|
-| Kaggle       | 1966–2017 | 3+ victims                       | `data/raw/kaggle_1965_2019.csv`              |
-| Mother Jones | 1982–2026 | 4+ killed (pre-2013), 3+ (2013+) | `data/raw/mother_jones.csv` (auto-download)  |
-| Stanford MSA | 1966–2016 | 3+ shooting victims              | `data/raw/stanford_msa.csv` (auto-download)  |
+The three raw datasets are **not redistributed in this repository**, in line
+with their respective sources' attribution and redistribution norms. Users
+should obtain them directly from the original publishers (see below).
+
+| Source       | Years     | Inclusion criterion              | Where to obtain                                                                      |
+|--------------|-----------|----------------------------------|--------------------------------------------------------------------------------------|
+| Kaggle       | 1966–2017 | 3+ victims                       | Kaggle search: "Mass Shootings in America" (originally compiled by Stanford)         |
+| Mother Jones | 1982–2026 | 4+ killed (pre-2013), 3+ (2013+) | https://www.motherjones.com/politics/2012/12/mass-shootings-mother-jones-full-data/ |
+| Stanford MSA | 1966–2016 | 3+ shooting victims              | https://github.com/StanfordGeospatialCenter/MSA                                      |
 
 After harmonization and removal of the Las Vegas 2017 outlier, the pooled
 dataset contains **806 incidents** across **12 common variables**
 (`source`, `year`, `fatalities`, `injured`, `total_victims`, `incident_area`,
 `open_close`, `age`, `gender`, `race`, `mental_health`, `multiple_shooters`).
 
+The **harmonized derivative** (`data/processed/harmonized.csv`) is provided
+in this repository as the output of the harmonization pipeline applied to
+the three sources.
+
 ## Repository layout
 
 ```
 .
 ├── data/
-│   ├── raw/                    # source CSVs (one per database)
-│   └── processed/              # harmonized.csv, dataset_summary.csv
+│   ├── raw/                    # download instructions only — see data/raw/README.md
+│   └── processed/              # harmonized.csv, dataset_summary.csv (derivatives)
 ├── src/                        # core pipeline modules
 │   ├── preprocess.py           # harmonization into 12-variable schema
 │   ├── classification_strategies.py  # rule / std / quartile labeling
@@ -48,6 +56,7 @@ dataset contains **806 incidents** across **12 common variables**
 │   └── 07_figures.py           # regenerate paper figures
 ├── results/                    # experiment outputs (CSV)
 ├── figures/                    # paper figures (PDF + PNG)
+├── LICENSE
 └── README.md
 ```
 
@@ -64,11 +73,31 @@ pip install -r requirements.txt
 
 Tested with Python 3.9 and 3.11.
 
+## Obtaining the data
+
+Before running the pipeline, place the three raw datasets in `data/raw/`:
+
+```bash
+# Mother Jones + Stanford MSA (auto-downloadable)
+python src/download_data.py
+
+# Kaggle "Mass Shootings in America" (manual)
+# Download from Kaggle and save as:
+#   data/raw/kaggle_1965_2019.csv
+```
+
+The Kaggle dataset requires a free Kaggle account; the file is not
+auto-fetched because Kaggle's terms of service generally discourage
+automated mirroring.
+
+The committed `data/processed/harmonized.csv` lets you verify the paper's
+headline numbers (see "Verifying paper numbers" below) without re-running
+the full pipeline.
+
 ## Reproducing the paper
 
 ```bash
-# 1. Download external datasets (Mother Jones + Stanford MSA)
-python src/download_data.py
+# 1. Obtain raw data (see "Obtaining the data" above)
 
 # 2. Harmonize all three sources into the common schema
 python src/preprocess.py
@@ -191,5 +220,5 @@ for the full ethics and limitations discussion.
 
 ## License
 
-Released under a non-commercial research license. Operational deployment
-is explicitly prohibited.
+Released under the PolyForm Noncommercial License 1.0.0. Operational
+deployment is explicitly prohibited. See the `LICENSE` file for full terms.
